@@ -7,24 +7,25 @@ export const empCRUD= (state=[],action) =>{
             break;
         case "ADD_EMP":
             console.log("in add reducer",action.payload);
-            let record = action.payload;
-            state.push(record);
-            return state;
+            // let record = action.payload;
+            // state.push(record);
+            return [...state,action.payload];
             //return action.payload;
             break;
         case "UPDATE_EMP":
             console.log("in update reducer",action.payload);
-            //let record = action.payload;
-            //state.push(record);
             return state;
-            //return action.payload;
             break;
         case "DELETE_EMP":
-            let arr=[...state];
+           // let arr=[...state];
             console.log("in delete  reducer",action.payload);
             return [...state].filter((dt)=>dt._id!==action.payload._id);
             break;
-
+        case "LOGIN_USER":
+            console.log('in Login reducer',action.payload)
+            localStorage.setItem('token',action.payload)
+            return action.payload;
+            break;
     }
     return state;
 }

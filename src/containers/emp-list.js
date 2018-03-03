@@ -1,6 +1,5 @@
 import React from 'react';
 import {Table,Modal,Button,Form,FormGroup,Col,ControlLabel,FormControl} from 'react-bootstrap';
-
 import {bindActionCreators} from 'redux';
 import {connect}from 'react-redux';
 import {empList} from "../actions/index.js";
@@ -9,17 +8,14 @@ import {cityList} from "../actions/index.js";
 import {deleteEmp} from "../actions/index.js";
 import {addEmp} from "../actions/index.js";
 import {updateEmp} from "../actions/index.js";
-
-import EmpForm from "./emp-form";
-
-
-
 const axios=require('axios');
+const  _=require('lodash')
 
 class EmpList extends React.Component{
     constructor(){
         super();
         this.state={
+            data1:[],
             currentData:[],
             editData:[],
             editId:'',
@@ -30,20 +26,32 @@ class EmpList extends React.Component{
             searchArr:[],
             isSearch:false,
             photo:'',
-            previewFile:''
+            previewFile:'',
+            currCity:[]
         }
     }
     componentWillMount(){
-        this.ListEmp();
-        this.stateList1();
-        this.cityList1();
+       if(!localStorage.getItem('token'))
+        {
+             this.props.history.push('/login');
+        }
+        this.props.empList();
+       // this.ListEmp();
+        //this.stateList1();
+        //this.cityList1();
+    }
+    componentWillReceiveProps(nextProps)
+    {
+        this.setState({
+            data1:nextProps.list
+        })
     }
     stateList1=()=>{
 
         axios.get('http://localhost:8282/statelist').then((response)=>{
 
             console.log('State Data : ',response.data);
-            this.props.method.dispatch(stateList(response.data))
+            this.props.stateList(response.data);
 
             // empList(response.data)
         })
@@ -53,14 +61,32 @@ class EmpList extends React.Component{
         axios.get('http://localhost:8282/citylist').then((response)=>{
 
             console.log('State Data : ',response.data);
-            this.props.method.dispatch(cityList(response.data))
+            this.props.cityList(response.data)
 
             // empList(response.data)
+        })
+    }
+    handleCitybyState=(e)=>{
+        this.state.currCity=[];
+        var currentState=this.state.editData.state;
+        let city=[];
+        this.props.citylist.map((s,i)=>{
+            if(s.statename===currentState)
+            {
+                city.push(s);
+            }
+        })
+
+        this.setState({
+            currCity:city
         })
     }
     clearData=()=>{
         this.state.editData=[];
         this.state.currentData=[];
+        this.setState({
+            isEditing:false
+        })
     }
     search=(e)=>{
         e.preventDefault();
@@ -70,8 +96,9 @@ class EmpList extends React.Component{
             searchArr:[],
             isSearch:true
         })
-        var temp=[]
-        this.props.list.map((st,i)=>{
+
+        var temp=[];
+        this.state.data1.map((st,i)=>{
             if(st.firstname.includes(key))
             {
                 temp.push(st);
@@ -88,22 +115,27 @@ class EmpList extends React.Component{
             {
                 temp.push(st);
             }
+            if(key==="")
+            {
+                this.setState({
+
+                    isSearch:false
+                })
+            }
         })
-        if(key=='')
-        {
-            this.setState({
-                searchArr:[],
-                isSearch:false
-            })
-        }
+
+
         this.setState({
             searchArr:temp,
 
         })
+        console.log('Seacrch Array : ',this.state.searchArr)
 
     }
 
     handleChange=(event)=>{
+       // event.preventDefault();
+       // alert(event.target.value);
         console.log('control : ',event.target.value);
         const {value, name} = event.target;
         const currentData=this.state.currentData;
@@ -122,15 +154,25 @@ class EmpList extends React.Component{
     }
 
     sort=(e)=>{
-        var key=e.target.id;
-        var myData=[].concat(this.props.list).sort((a,b)=>a[key]>b[key])
-       // this.props.list=myData;
 
+        var key=e.target.id;
+
+        var myData = [].concat(this.state.data1).sort((a, b) => a[key] > b[key]);
+
+        this.setState({
+            data1:myData
+        })
+
+        console.log('Data Sorted' , myData)
+        console.log("After setstate ",this.state.data1);
     }
     dsort=(e)=>{
         var key=e.target.id;
-        var myData=[].concat(this.props.list).sort((a,b)=>a[key]<b[key])
-        // this.props.list=myData;
+        var myData=[].concat(this.state.data1).sort((a,b)=>a[key]<b[key])
+        this.setState({
+            data1:myData
+        })
+        //this.props.method.dispatch(empList(myData));
 
     }
 
@@ -138,60 +180,87 @@ class EmpList extends React.Component{
 
         axios.get('http://localhost:8282/list').then((response)=>{
             console.log('EMp Data : ',response.data);
-            this.props.method.dispatch(empList(response.data))
+            this.props.empList(response.data);
 
             // empList(response.data)
         })
     }
     deleteEmp1=(eid)=>{
+        let obj={
+            id:eid
+        }
 
-        axios.post('http://localhost:8282/delete',{id:eid}).then((response)=>{
-            console.log('Emp Delete : ',response.data);
-            // var d=this.props.list.filter((d)=>response.data['_id']!==d._id);
-            // console.log("After Deltee",d);
-            this.props.method.dispatch(deleteEmp(response.data))
-           // this.props.method.dispatch(empList(d))
-
-            // empList(response.data)
-        })
+        this.props.deleteEmp(obj);
+        // axios.post('http://localhost:8282/delete',{id:eid}).then((response)=>{
+        //     console.log('Emp Delete : ',response.data);
+        //     // var d=this.state.data1.filter((d)=>response.data['_id']!==d._id);
+        //     // console.log("After Deltee",d);
+        //     this.props.deleteEmp(response.data);
+        //    // this.props.method.dispatch(empList(d))
+        //
+        //     // empList(response.data)
+        // })
     }
     addEmp1=(e)=>{
         e.preventDefault();
-        axios.post('http://localhost:8282/add',
-            {
-                photo:this.state.previewFile,
-                ...this.state.currentData
-            }).then((response)=>{
-            console.log('Emp Add : ',response.data);
-            this.toggleActive();
-            this.clearData();
-            this.props.method.dispatch(addEmp(response.data))
-        })
+        let obj={
+            photo:this.state.previewFile,
+            ...this.state.currentData
+        }
+        this.props.addEmp(obj);
+        this.toggleActive();
+        this.clearData();
+        // e.preventDefault();
+        // axios.post('http://localhost:8282/add',
+        //     {
+        //         photo:this.state.previewFile,
+        //         ...this.state.currentData
+        //     }).then((response)=>{
+        //     console.log('Emp Add : ',response.data);
+        //     this.toggleActive();
+        //     this.clearData();
+        //     this.props.addEmp(response.data);
+        // })
 
 
     }
-    updateEmp=(e)=>{
-        e.preventDefault();
+    updateEmp1=(e)=>{
 
-        axios.post('http://localhost:8282/add',
-            {
-                photo:this.state.previewFile,
-                id:this.state.editId,
-                ...this.state.editData
-            }).then((response)=>{
-            console.log('Emp Update : ',response.data);
-            this.toggleActive();
-            this.clearData();
-            this.props.method.dispatch(updateEmp(response.data))
-        })
+        e.preventDefault();
+        let obj={
+            photo:this.state.previewFile,
+            ...this.state.editData
+        }
+        this.props.updateEmp(obj);
+        this.toggleActive();
+        this.clearData();
+        // e.preventDefault();
+        //
+        // axios.post('http://localhost:8282/update',
+        //     {
+        //         photo:this.state.previewFile,
+        //         id:this.state.editId,
+        //         ...this.state.editData
+        //     }).then((response)=>{
+        //     console.log('Emp Update : ',response.data);
+        //     this.toggleActive();
+        //     this.clearData();
+        //     this.setState({
+        //         isEditing:false
+        //     })
+        //     this.props.updateEmp(response.data)
+        // })
     }
     fileUpload=(e)=>{
+        let {editData}=this.state;
         let reader=new FileReader();
         let file=e.target.files[0];
+        editData.photo=reader.result;
         reader.onloadend=()=>{
             this.setState({
                 photo:file,
-                previewFile:reader.result
+                previewFile:reader.result,
+                editData
             })
         }
 
@@ -210,14 +279,16 @@ class EmpList extends React.Component{
 
     toggleActive=()=>{
         this.setState({
-            isActive:!this.state.isActive
+            isActive:!this.state.isActive,
         })
+        this.clearData();
+        this.state.currCity=[];
     }
 
     render(){
-        const editData=this.state.editData;
+        const editData1=this.state.editData;
         var pages=[];
-        var len=this.props.list.length;
+        var len=this.state.data1.length;
         var totalPages=Math.ceil(len/this.state.totalRecords);
         for(let i=1;i<=totalPages;i++)
         {
@@ -227,7 +298,8 @@ class EmpList extends React.Component{
         var lastRec=this.state.curr*this.state.totalRecords;
         var firstRec=lastRec-this.state.totalRecords;
 
-        var myRec=this.props.list.slice(firstRec,lastRec);
+        var myRec=this.state.data1.slice(firstRec,lastRec);
+
         return(
             <div>
                  <div>
@@ -246,17 +318,17 @@ class EmpList extends React.Component{
 
                                     </th>
                                     <th>Email
-                                        <a id="firstname" onClick={this.sort} className="glyphicon glyphicon-arrow-up"></a>
-                                        <a id="firstname" onClick={this.dsort} className="glyphicon glyphicon-arrow-down"></a>
+                                        <a id="email" onClick={this.sort} className="glyphicon glyphicon-arrow-up"></a>
+                                        <a id="email" onClick={this.dsort} className="glyphicon glyphicon-arrow-down"></a>
                                     </th>
                                     <th>State
 
-                                        <a id="firstname" onClick={this.sort} className="glyphicon glyphicon-arrow-up"></a>
-                                        <a id="firstname" onClick={this.dsort} className="glyphicon glyphicon-arrow-down"></a>
+                                        <a id="state" onClick={this.sort} className="glyphicon glyphicon-arrow-up"></a>
+                                        <a id="state" onClick={this.dsort} className="glyphicon glyphicon-arrow-down"></a>
                                     </th>
                                     <th>City
-                                        <a id="firstname" onClick={this.sort} className="glyphicon glyphicon-arrow-up"></a>
-                                        <a id="firstname" onClick={this.dsort} className="glyphicon glyphicon-arrow-down"></a>
+                                        <a id="city" onClick={this.sort} className="glyphicon glyphicon-arrow-up"></a>
+                                        <a id="city" onClick={this.dsort} className="glyphicon glyphicon-arrow-down"></a>
                                     </th>
                                     <th>Photo</th>
                                     <th>Action</th>
@@ -272,7 +344,16 @@ class EmpList extends React.Component{
                                                     <td key={i}>{emp.state}</td>
                                                     <td key={i}>{emp.city}</td>
                                                     <td key={i}><img src={emp.photo} height="50px" width="50px"/></td>
-                                                    <td>Delete</td>
+                                                    <td><Button onClick={()=>{this.deleteEmp1(emp._id)}}>Delete</Button>
+                                                        <Button onClick={()=>{
+                                                            this.setState({
+                                                                editId:emp._id,
+                                                                editData:emp,
+                                                                isActive:true,
+                                                                isEditing:true
+                                                            })
+                                                        }}>Edit</Button>
+                                                    </td>
                                                 </tr>)
                                         })
                                         :
@@ -302,7 +383,7 @@ class EmpList extends React.Component{
                                 <tr align="center" colSpan="4">
                                     {
                                         pages.map((p,i)=>{
-                                            return <button onClick={()=>{this.mypage(p)}}>{p}</button>
+                                                return <button onClick={()=>{this.mypage(p)}}>{p}</button>
                                         })
                                     }
                                 </tr>
@@ -321,7 +402,7 @@ class EmpList extends React.Component{
                                         Firstname
                                     </Col>
                                     <Col sm={10}>
-                                        <FormControl type="text"  value={editData.firstname} name="firstname" onChange={this.handleChange}/>
+                                        <FormControl type="text"  value={editData1.firstname} name="firstname" onChange={(e)=>{this.handleChange(e)}}/>
                                     </Col>
                                 </FormGroup>
                                 <FormGroup controlId="formHorizontalEmail">
@@ -329,7 +410,7 @@ class EmpList extends React.Component{
                                         Lastname
                                     </Col>
                                     <Col sm={10}>
-                                        <FormControl type="text" name="lastname" value={editData.lastname} onChange={this.handleChange}/>
+                                        <FormControl type="text" name="lastname" value={editData1.lastname} onChange={this.handleChange}/>
                                     </Col>
                                 </FormGroup>
                                 <FormGroup controlId="formHorizontalEmail">
@@ -337,7 +418,7 @@ class EmpList extends React.Component{
                                         Email
                                     </Col>
                                     <Col sm={10}>
-                                        <FormControl type="email" name="email" value={editData.email} onChange={this.handleChange}/>
+                                        <FormControl type="email" name="email" value={editData1.email} onChange={this.handleChange}/>
                                     </Col>
                                 </FormGroup>
 
@@ -346,7 +427,9 @@ class EmpList extends React.Component{
                                         State
                                     </Col>
                                     <Col sm={10}>
-                                        <FormControl componentClass="select" name="state" value={editData.state} onChange={this.handleChange}>
+                                        <FormControl componentClass="select" name="state" value={editData1.state} onChange={(e)=>{this.handleChange(e);
+                                        this.handleCitybyState(e);
+                                        }}>
                                             {
                                                 this.props.statelist.map((st,i)=>{
                                                     return(
@@ -362,9 +445,10 @@ class EmpList extends React.Component{
                                         City
                                     </Col>
                                     <Col sm={10}>
-                                        <FormControl componentClass="select" value={editData.city} onChange={this.handleChange} name="city">
+                                        <FormControl componentClass="select" value={editData1.city} onChange={this.handleChange} name="city">
+                                            <option value={editData1.city}>{editData1.city}</option>
                                             {
-                                                this.props.citylist.map((c,i)=>{
+                                                this.state.currCity.map((c,i)=>{
 
                                                     return(
                                                         <option value={c.cityname}>{c.cityname}</option>
@@ -376,6 +460,10 @@ class EmpList extends React.Component{
                                 </FormGroup>
                                 <FormGroup controlId="formHorizontalEmail" name="photo">
                                     <Col componentClass={ControlLabel} sm={2}>
+                                        <img src={editData1.photo} height="30px" width="30px"/>
+
+                                    </Col>
+                                    <Col componentClass={ControlLabel} sm={2}>
                                         Photo
                                     </Col>
                                     <Col sm={10}>
@@ -386,7 +474,7 @@ class EmpList extends React.Component{
                                     <Col smOffset={2} sm={10}>
                                         {
                                             this.state.isEditing?
-                                                <Button bsStyle="success" type="submit" onClick={this.updateEmp} name="btnSubmit">Update</Button>
+                                                <Button bsStyle="success" type="submit" onClick={this.updateEmp1} name="btnSubmit">Update</Button>
 
                                                 :
                                                 <Button bsStyle="success" type="submit" onClick={this.addEmp1} name="btnSubmit">Insert</Button>
@@ -414,14 +502,16 @@ function mapStateToProps(state) {
          list:state.empList,
         statelist:state.stateList,
         citylist:state.cityList,
-        deleteemp:state.deleteEmp,
-        addemp:state.addEmp,
-        updateemp:state.updateEmp
-
+        // deleteemp:state.deleteEmp,
+        // addemp:state.addEmp,
+        // updateemp:state.updateEmp
+        //
     }
 }
-function matchDispatchToProps(dispatch) {
-    return bindActionCreators({empList,stateList,cityList,deleteEmp,addEmp,updateEmp},dispatch)
+function matchDispatchToProps(dispatch){
+return bindActionCreators({deleteEmp,addEmp,empList},dispatch)
+
+    // return bindActionCreators({empList,stateList,cityList,deleteEmp,addEmp,updateEmp},dispatch)
 
  }
 export  default connect(mapStateToProps,matchDispatchToProps)(EmpList);
